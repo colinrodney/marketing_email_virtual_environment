@@ -1,7 +1,14 @@
 import os
+import smtplib
+
 from supabase import create_client, Client
 from jinja2 import Environment, FileSystemLoader
 from dotenv import load_dotenv
+
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 
 # 1. Initialize Supabase Client
 # url: str = os.environ.get("SUPABASE_URL")
@@ -48,8 +55,43 @@ def render_and_prepare_emails():
         
         # Output or dispatch point
         print(f"--- Compiled HTML for {record['recipient_email']} ---")
-        print(rendered_html[:300] + "...\n")  # Preview snippet
+        # print(rendered_html[:300] + "...\n")  # Preview snippet
+
+        # Set up email details from environment variables
+        sender_email = os.getenv("SENDER_EMAIL")
+        password = os.getenv("EMAIL_PASSWORD")
+        smtp_server = os.getenv("SMTP_SERVER")
+        smtp_port = int(os.getenv("SMTP_PORT"))
+
+        receiver_email = "receiver@example.com"
+
+        subject = "Welcome to Company"
+        body = "Hey there! Thanks for joining us at Company. Your email has been verified and your account has been created. Head to the website to login and start using our features."
+
+        # Create the email message
+        message = MIMEMultipart()
+        message["From"] = sender_email
+        message["To"] = receiver_email
+        message["Subject"] = subject
+
+        # Attach email body to message
+        message.attach(MIMEText(body, "plain"))
         
+        
+        # Establish a connection to the SMTP server and send the email
+        try:
+            # Connect to the SMTP server
+            with smtplib.SMTP(smtp_server, smtp_port) as server:
+                server.starttls()  # Secure the connection
+                server.login(sender_email, password)  # Log in to the SMTP server
+                server.sendmail(
+                    sender_email, receiver_email, message.as_string()
+                )  # Send the email
+            print("Email sent successfully")
+        except Exception as e:
+            print(f"Error: {e}")
+
+
         # TODO: Hook your SMTP or email API sender here (e.g., SendGrid, Resend, Amazon SES)
         # send_email(record['recipient_email'], record['campaign_name'], rendered_html)
         
